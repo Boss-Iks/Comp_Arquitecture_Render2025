@@ -1,0 +1,5 @@
+matte: mat1 0 0.8 0.8
+metal: metal1 0 0.8 0 2.0
+refractive: ref99 1.3
+sphere: 0 0 0 0.65 mat1
+cylinder: 0 0 0 0.5 20 10 -5 metal1
