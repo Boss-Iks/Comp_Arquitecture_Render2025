@@ -3,6 +3,7 @@ add_library(common STATIC)
 target_sources(common 
     PRIVATE 
         src/vector.cpp
+        src/cli.cpp
 )
 
 target_include_directories(common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

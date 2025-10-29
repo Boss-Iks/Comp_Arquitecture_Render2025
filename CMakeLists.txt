@@ -43,6 +43,9 @@ if(ENABLE_CLANG_TIDY)
   endif()
 endif()
 
+# Make headers in common/include visible to all subprojects
+include_directories(${CMAKE_SOURCE_DIR}/common/include)
+
 add_subdirectory(common)
 add_subdirectory(aos)
 add_subdirectory(soa)
