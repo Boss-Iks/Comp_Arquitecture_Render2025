@@ -24,9 +24,9 @@ struct color {
 //given a w h , vactor<color>(w*h, {0,0,0})
 
 //these are the variables needed for creating a point of view (then rays and whatnot) initialised with their default values (to be subed with actual values later, config file)
-std::vector<float> camera_position = {0.0f, 0.0f, -10.0f};
-std::vector<float> camera_target   = {0.0f, 0.0f,  0.0f};
-std::vector<float> camera_north    = {0.0f, 1.0f,  0.0f};
+vector<float> camera_position = {0.0f, 0.0f, -10.0f};
+vector<float> camera_target   = {0.0f, 0.0f,  0.0f};
+vector<float> camera_north    = {0.0f, 1.0f,  0.0f};
 
 float field_of_view = 90.0f;
 
@@ -43,7 +43,7 @@ unsigned int ray_rng_seed = 19;
 struct vista {
   float origen_ventana, paso_x, paso_y,
   eje_u, eje_v, dir_view,
-  rng_rayos, dist_uniforme;
+  rng_rayos,rand_x,rand_y;
 };
 
 vista punto_de_vista( const vector<float>& camera_position,const vector<float>& camera_target,const vector<float>& camera_north,
@@ -104,8 +104,8 @@ vista punto_de_vista( const vector<float>& camera_position,const vector<float>& 
     // window dimensions (world units)
     const float deg2rad = (3.14159265358979323846f / 180.0f);
     float half_fov      = (0.5f * field_of_view * deg2rad);
-    float ventana_altura  = (2.0f * std::tan(half_fov) * distancia_focal);
-    float ventana_anchura = (ventana_altura * (static_cast<float>(aspect_ratio_w) / static_cast<float>(aspect_ratio_h)));
+    float ventana_altura  = (2.0f * tan(half_fov) * distancia_focal);
+    float ventana_anchura = (ventana_altura * (aspect_ratio_w /aspect_ratio_h));
 
     // project window edges
     for (int i = 0; i < 3; ++i) {
@@ -114,8 +114,8 @@ vista punto_de_vista( const vector<float>& camera_position,const vector<float>& 
     }
 
     // pixel steps
-    float inv_w = (1.0f / static_cast<float>(image_width));
-    float inv_h = (1.0f / static_cast<float>(image_height));
+    float inv_w = (1.0f / image_width);
+    float inv_h = (1.0f / image_height);
     for (int i = 0; i < 3; ++i) {
         paso_x[i] = (proy_h[i] * inv_w);
         paso_y[i] = (proy_v[i] * inv_h);
@@ -131,10 +131,21 @@ vista punto_de_vista( const vector<float>& camera_position,const vector<float>& 
 
     //ray gen
     // initialize RNG (Mersenne Twister 64-bit) with the given seed
-    std::mt19937_64 rng_rayos(ray_rng_seed);
+    mt19937_64 rng_rayos(ray_rng_seed);
 
     // uniform real distribution between -0.5 and +0.5
-    std::uniform_real_distribution<float> dist_uniforme(-0.5f, 0.5f);
+    uniform_real_distribution<float> rand_x(-0.5f, 0.5f);
+    uniform_real_distribution<float> rand_y(-0.5f, 0.5f);
 
+    vista output_view;
+        output_view.origen_ventana;
+         output_view.paso_x;
+          output_view.paso_y;
+          output_view.eje_u;
+           output_view.eje_v;
+            output_view.dir_view;
+            output_view.rng_rayos;
+             output_view.rand_x;
+             output_view.rand_y;
     return output_view ;
 };
