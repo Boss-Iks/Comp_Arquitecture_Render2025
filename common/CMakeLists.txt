@@ -5,6 +5,7 @@ target_sources(common
         src/vector.cpp
         src/cli.cpp
         src/config.cpp
+        src/scene.cpp
 )
 
 target_include_directories(common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

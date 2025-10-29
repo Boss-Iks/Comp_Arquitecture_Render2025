@@ -1,0 +1,2 @@
+matte: red 1 0 0
+sphere: 0 0 0 1 red extra
