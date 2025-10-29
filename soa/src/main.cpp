@@ -1,4 +1,5 @@
 #include "../../common/include/cli.hpp"
+#include "../../common/include/config.hpp"
 #include <iostream>
 #include <print>
 #include <string_view>
@@ -19,6 +20,8 @@ int main(int argc, char * argv[]) {
   }
 
   CLIArgs cli = parse_cli(args, "render-soa");
+  Config cfg  = parse_config(cli.config_path);
+  std::cout << "Config loaded (defaults): width=" << cfg.image_width << "\n";
 
   std::cout << "Config: " << cli.config_path << "\n";
   std::cout << "Scene:  " << cli.scene_path << "\n";
