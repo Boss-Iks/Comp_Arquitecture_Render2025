@@ -1,3 +1,4 @@
+#include "../../common/include/camera.hpp"
 #include "../../common/include/cli.hpp"
 #include "../../common/include/config.hpp"
 #include "../../common/include/scene.hpp"
@@ -25,6 +26,12 @@ int main(int argc, char * argv[]) {
   std::cout << "Config loaded (defaults): width=" << cfg.image_width << "\n";
 
   Scene scene = parse_scene(cli.scene_path);
+
+  Camera cam = make_camera_from_config(cfg);
+  std::cout << "Camera ready (" << cam.image_width << "x" << cam.image_height << ") \n";
+  // Light sanity prints (avoid unused warnings)
+  std::cout << "dx=(" << cam.dx[0] << "," << cam.dx[1] << "," << cam.dx[2] << ")\n";
+  std::cout << "dy=(" << cam.dy[0] << "," << cam.dy[1] << "," << cam.dy[2] << ")\n";
 
   // Minimal output to avoid unused warnings and confirm flow
   std::cout << "Scene loaded (materials=" << scene.materials.size()

@@ -6,6 +6,7 @@ target_sources(common
         src/cli.cpp
         src/config.cpp
         src/scene.cpp
+        src/camera.cpp
 )
 
 target_include_directories(common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
