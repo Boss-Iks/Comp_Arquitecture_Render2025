@@ -1,0 +1,5 @@
+if(EXISTS "/workspace/build/utcommon/utcommon[1]_tests.cmake")
+  include("/workspace/build/utcommon/utcommon[1]_tests.cmake")
+else()
+  add_test(utcommon_NOT_BUILT utcommon_NOT_BUILT)
+endif()

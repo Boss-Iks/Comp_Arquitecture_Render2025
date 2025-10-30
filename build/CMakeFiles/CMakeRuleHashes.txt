@@ -1,0 +1,3 @@
+# Hashes of file build rules.
+376dfb62b1007562a8ead79e1955df31 utcommon/CMakeFiles/coverage-utcommon
+2c26d1a4eff3556551a1fb6e916d37a6 utcommon/CMakeFiles/coverage-utcommon-clean

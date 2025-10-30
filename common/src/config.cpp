@@ -12,11 +12,10 @@
 #include <string_view>
 #include <unordered_map>
 
-// Trim helpers (local linkage)
 namespace {
 
   inline void ltrim(std::string & s) {
-    size_t i = 0;
+    std::size_t i = 0;
     while (i < s.size() and std::isspace(static_cast<unsigned char>(s[i])) != 0) {
       ++i;
     }
@@ -27,7 +26,7 @@ namespace {
     if (s.empty()) {
       return;
     }
-    size_t i = s.size();
+    std::size_t i = s.size();
     while (i > 0 and std::isspace(static_cast<unsigned char>(s[i - 1])) != 0) {
       --i;
     }
@@ -79,7 +78,6 @@ namespace {
   std::string remaining_tail(std::istringstream & iss) {
     std::string tail, chunk;
     std::ostringstream os;
-    // consume remaining non-newline content as tail
     while (iss >> chunk) {
       if (!tail.empty()) {
         os << ' ';
@@ -90,13 +88,12 @@ namespace {
     return tail;
   }
 
-  // Helper handlers for individual keys (keep strict validation and error reporting)
   inline void handle_aspect_ratio(std::istringstream & iss, Config & cfg, std::string const & key) {
     int w{}, h{};
     if (!read_int(iss, w) or !read_int(iss, h) or w <= 0 or h <= 0) {
       fail_invalid_value(key);
     }
-    std::string tail = remaining_tail(iss);
+    std::string const tail = remaining_tail(iss);
     if (!tail.empty()) {
       fail_extra(key, tail);
     }
@@ -109,7 +106,7 @@ namespace {
     if (!read_int(iss, w) or w <= 0) {
       fail_invalid_value(key);
     }
-    std::string tail = remaining_tail(iss);
+    std::string const tail = remaining_tail(iss);
     if (!tail.empty()) {
       fail_extra(key, tail);
     }
@@ -121,28 +118,37 @@ namespace {
     if (!read_double(iss, g) or g <= 0.0) {
       fail_invalid_value(key);
     }
-    std::string tail = remaining_tail(iss);
+    std::string const tail = remaining_tail(iss);
     if (!tail.empty()) {
       fail_extra(key, tail);
     }
     cfg.gamma = g;
   }
 
-  template <size_t N>
+  template <std::size_t N>
   inline bool read_n_doubles(std::istringstream & iss, std::array<double, N> & out, int n) {
-    if (n != static_cast<int>(N)) {
+    if (n < 0) {  // negative makes no sense
       return false;
     }
-    for (std::size_t i = 0; i < static_cast<std::size_t>(n); ++i) {
-      if (!(iss >> out.at(i))) {
+
+    std::size_t const wanted = N;
+    auto const got           = static_cast<std::size_t>(n);
+    if (got != wanted) {
+      return false;
+    }
+
+    for (std::size_t i = 0; i < wanted; ++i) {
+      double v{};
+      if (!(iss >> v)) {
         return false;
       }
+      out.at(i) = v;  // tidy-friendly, bounds-checked
     }
     return true;
   }
 
   inline void ensure_no_tail(std::istringstream & iss, std::string const & key) {
-    std::string tail = remaining_tail(iss);
+    std::string const tail = remaining_tail(iss);
     if (!tail.empty()) {
       fail_extra(key, tail);
     }
@@ -155,9 +161,7 @@ namespace {
       fail_invalid_value(key);
     }
     ensure_no_tail(iss, key);
-    cfg.cam_pos[0] = v[0];
-    cfg.cam_pos[1] = v[1];
-    cfg.cam_pos[2] = v[2];
+    cfg.cam_pos = v;
   }
 
   inline void handle_camera_target(std::istringstream & iss, Config & cfg,
@@ -167,9 +171,7 @@ namespace {
       fail_invalid_value(key);
     }
     ensure_no_tail(iss, key);
-    cfg.cam_target[0] = v[0];
-    cfg.cam_target[1] = v[1];
-    cfg.cam_target[2] = v[2];
+    cfg.cam_target = v;
   }
 
   inline void handle_camera_north(std::istringstream & iss, Config & cfg, std::string const & key) {
@@ -178,9 +180,7 @@ namespace {
       fail_invalid_value(key);
     }
     ensure_no_tail(iss, key);
-    cfg.cam_north[0] = v[0];
-    cfg.cam_north[1] = v[1];
-    cfg.cam_north[2] = v[2];
+    cfg.cam_north = v;
   }
 
   inline void handle_field_of_view(std::istringstream & iss, Config & cfg,
@@ -231,12 +231,9 @@ namespace {
       fail_invalid_value(key);
     }
     ensure_no_tail(iss, key);
-    dst[0] = v[0];
-    dst[1] = v[1];
-    dst[2] = v[2];
+    dst = v;
   }
 
-  // ensure_file_exists moved here to the anonymous namespace to provide internal linkage
   void ensure_file_exists(std::filesystem::path const & p) {
     if (!std::filesystem::exists(p)) {
       std::cerr << "Error: Configuration file not found: " << p.string() << "\n";
@@ -244,7 +241,6 @@ namespace {
     }
   }
 
-  // Provide the handlers map used by process_config_line.
   inline void add_aspect_and_general_handlers(
       std::unordered_map<std::string,
                          std::function<void(std::istringstream &, Config &, std::string const &)>> &
@@ -364,7 +360,6 @@ namespace {
     std::string s = line;
     trim(s);
 
-    // Prefer ':' (spec format), then '=' for robustness
     if (auto pos = s.find(':'); pos != std::string::npos) {
       key  = s.substr(0, pos);
       rest = s.substr(pos + 1);
@@ -406,19 +401,16 @@ namespace {
   }
 
   void process_config_line(std::string const & line, int /*line_no*/, Config & cfg) {
-    // Quick checks
     if (is_comment_or_empty_line(line)) {
       return;
     }
 
-    // Split into key and rest
     std::string key;
     std::string rest;
     if (!split_key_and_rest(line, key, rest)) {
       return;
     }
 
-    // Normalize key and dispatch
     normalize_key(key);
     auto const & handlers = get_handlers();
     auto it               = handlers.find(key);
@@ -433,7 +425,7 @@ namespace {
 }  // anonymous namespace
 
 Config parse_config(std::string_view config_path) {
-  std::filesystem::path p{std::string(config_path)};
+  std::filesystem::path const p{std::string(config_path)};
   ensure_file_exists(p);
 
   Config cfg;  // defaults

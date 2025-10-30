@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/render-soa.dir/link.d "CMakeFiles/render-soa.dir/src/main.cpp.o" -o render-soa  ../common/libcommon.a

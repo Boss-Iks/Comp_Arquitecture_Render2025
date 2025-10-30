@@ -1,6 +1,8 @@
 #include "../include/cli.hpp"
 #include <cstdlib>
 #include <iostream>
+#include <string_view>
+#include <vector>
 
 CLIArgs parse_cli(std::vector<std::string_view> const & args, std::string_view exec_name) {
   // args[0] is the executable name; we expect 4 tokens total
