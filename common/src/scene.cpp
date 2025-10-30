@@ -1,10 +1,12 @@
 #include "../include/scene.hpp"
+#include <array>
+#include <cctype>
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <limits>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -12,7 +14,6 @@
 
 namespace {
 
-  // ---------- small utilities ----------
   inline void ltrim(std::string & s) {
     std::size_t i = 0;
     while (i < s.size() and std::isspace(static_cast<unsigned char>(s[i])) != 0) {
@@ -108,7 +109,6 @@ namespace {
         return false;
       }
     }
-    // range check [0,1]
     return (rgb[0] >= 0.0 and rgb[0] <= 1.0) and
            (rgb[1] >= 0.0 and rgb[1] <= 1.0) and
            (rgb[2] >= 0.0 and rgb[2] <= 1.0);
@@ -129,7 +129,6 @@ namespace {
     return std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
   }
 
-  // MaterialTable definition so functions can refer to it.
   struct MaterialTable {
     std::unordered_map<std::string, std::uint32_t> name_to_id;
   };
@@ -142,9 +141,6 @@ namespace {
     return it->second;
   }
 
-  // ---------- parsing of material lines ----------
-  // MaterialTable is defined above.
-
   inline void add_matte(std::istringstream & iss, Scene & scn, MaterialTable & mt,
                         std::string const & tag) {
     std::string name;
@@ -152,6 +148,7 @@ namespace {
       fail_invalid_material_params(tag);
     }
 
+    // NOLINTNEXTLINE(readability-container-contains)
     if (mt.name_to_id.find(name) != mt.name_to_id.end()) {
       fail_duplicate_material(name);
     }
@@ -161,7 +158,7 @@ namespace {
       fail_invalid_material_params(tag);
     }
 
-    std::string extra = tail_tokens(iss);
+    std::string const extra = tail_tokens(iss);
     if (!extra.empty()) {
       fail_extra_material_tail(tag, extra);
     }
@@ -181,6 +178,7 @@ namespace {
       fail_invalid_material_params(tag);
     }
 
+    // NOLINTNEXTLINE(readability-container-contains)
     if (mt.name_to_id.find(name) != mt.name_to_id.end()) {
       fail_duplicate_material(name);
     }
@@ -195,7 +193,7 @@ namespace {
       fail_invalid_material_params(tag);
     }
 
-    std::string extra = tail_tokens(iss);
+    std::string const extra = tail_tokens(iss);
     if (!extra.empty()) {
       fail_extra_material_tail(tag, extra);
     }
@@ -216,6 +214,7 @@ namespace {
       fail_invalid_material_params(tag);
     }
 
+    // NOLINTNEXTLINE(readability-container-contains)
     if (mt.name_to_id.find(name) != mt.name_to_id.end()) {
       fail_duplicate_material(name);
     }
@@ -225,7 +224,7 @@ namespace {
       fail_invalid_material_params(tag);
     }
 
-    std::string extra = tail_tokens(iss);
+    std::string const extra = tail_tokens(iss);
     if (!extra.empty()) {
       fail_extra_material_tail(tag, extra);
     }
@@ -257,10 +256,9 @@ namespace {
       fail_invalid_object_params(tag);
     }
 
-    std::string extra = tail_tokens(iss);
+    std::string const extra = tail_tokens(iss);
     if (!extra.empty()) {
-      fail_extra_material_tail(tag,
-                               extra);  // reuse message style: “Extra data after ... for: [tag]”
+      fail_extra_material_tail(tag, extra);
     }
 
     Sphere s{};
@@ -288,7 +286,7 @@ namespace {
       fail_invalid_object_params(tag);
     }
 
-    std::string extra = tail_tokens(iss);
+    std::string const extra = tail_tokens(iss);
     if (!extra.empty()) {
       fail_extra_material_tail(tag, extra);
     }
@@ -296,14 +294,12 @@ namespace {
     Cylinder cy{};
     cy.base_center = c;
     cy.radius      = r;
-    cy.axis        = axis;  // we’ll normalize/interpret height later when building geometry
+    cy.axis        = axis;
     cy.material_id = mat_id_or_die(mt, mname);
     scn.cylinders.push_back(cy);
   }
 
-  // process one non-empty/non-comment scene line and update scene/material table
   inline void process_scene_line(std::string const & line, Scene & scn, MaterialTable & mt) {
-    // Split "tag: rest" (or "tag rest" if no colon)
     std::string s = line;
     trim(s);
     std::string tag;
@@ -319,7 +315,6 @@ namespace {
     trim(tag);
     trim(rest);
 
-    // normalize tag (lowercase)
     for (char & c : tag) {
       c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     }
@@ -341,10 +336,10 @@ namespace {
     }
   }
 
-}  // end anonymous namespace
+}  // namespace
 
 Scene parse_scene(std::string_view scene_path) {
-  std::filesystem::path p{std::string(scene_path)};
+  std::filesystem::path const p{std::string(scene_path)};
   ensure_file_exists(p);
 
   Scene scn;

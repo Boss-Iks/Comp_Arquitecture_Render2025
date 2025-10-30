@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/render-aos.dir/link.d "CMakeFiles/render-aos.dir/src/main.cpp.o" -o render-aos  ../common/libcommon.a

@@ -1,0 +1,17 @@
+{
+	"InstallScripts" : 
+	[
+		"/workspace/build/cmake_install.cmake",
+		"/workspace/build/_deps/gsl-build/cmake_install.cmake",
+		"/workspace/build/_deps/gsl-build/include/cmake_install.cmake",
+		"/workspace/build/_deps/googletest-build/cmake_install.cmake",
+		"/workspace/build/_deps/googletest-build/googletest/cmake_install.cmake",
+		"/workspace/build/common/cmake_install.cmake",
+		"/workspace/build/aos/cmake_install.cmake",
+		"/workspace/build/soa/cmake_install.cmake",
+		"/workspace/build/utcommon/cmake_install.cmake",
+		"/workspace/build/utaos/cmake_install.cmake",
+		"/workspace/build/utsoa/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
