@@ -1,0 +1,8 @@
+# materials
+matte: red  1 0 0
+metal: steel 0.7 0.7 0.7 0.15
+refractive: glass 1.5
+
+# objects
+sphere:   0 0 0  1   red
+cylinder: 0 0 -1  0.5   0 1 2   steel

@@ -1,0 +1,4 @@
+aspect_ratio: 16 9
+image_width: 800
+gamma: 2.2
+field_of_view: 0
