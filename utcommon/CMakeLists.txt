@@ -5,6 +5,8 @@ set(COMMON_SRC_FILES
 set(CURRENT_DIR_SRC_FILES 
   "${CMAKE_CURRENT_SOURCE_DIR}/test_vector.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/test_color.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/test_fb_aos.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/test_fb_soa.cpp"
 )
 
 add_unit_test_target(
@@ -13,4 +15,13 @@ add_unit_test_target(
   LIBRARY_FILTER common
   COVERAGE_DIR coverage-common
   LIBRARY_TO_LINK common
+)
+
+
+add_test(NAME utcommon COMMAND $<TARGET_FILE:utcommon>)
+
+
+target_include_directories(utcommon PRIVATE
+  ${CMAKE_SOURCE_DIR}/aos/src
+  ${CMAKE_SOURCE_DIR}/soa/src
 )
