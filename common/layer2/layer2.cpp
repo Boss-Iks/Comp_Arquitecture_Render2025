@@ -28,109 +28,84 @@ Cylinders lista_cilindros{};
 mt19937_64 ray_rng_state(19);
 mt19937_64 material_rng_state(13);
 
-// derived:  using the same names as in the document to not feel lost
-vector<float>vf = {//vector focal -> del punto de vista hasta el destino de la vision
-    camera_position[0] - camera_target[0],
-    camera_position[1] - camera_target[1],
-    camera_position[2] - camera_target[2]
-};
-//distancia focal, magnitud del vector focal
-float df = sqrt(vf[0]*vf[0] + vf[1]*vf[1] + vf[2]*vf[2]);
-float pi = 3.1415927f;//for conversion
-float alpha = (fov_deg*pi)/180;//campo de vision en radiants
-float hp = 2.0f * tan(0.5f * alpha) * df;//altura ventana de proyeccion
-float wp = hp * (aspect_ratio[0] / aspect_ratio[1]);//anchura ventana de proyeccion
-//direction vectors
-//cross product of camera and vf
-
-float cross_vf_n_x=vf[1]*camera_north[2]-vf[2]*camera_north[1];
-float cross_vf_n_y=vf[2]*camera_north[0]-vf[0]*camera_north[2];
-float cross_vf_n_z=vf[0]*camera_north[1]-vf[1]*camera_north[0];
-
-//magnitude of the cross section
-float mag_cross_vf_n = sqrt(cross_vf_n_x*cross_vf_n_x+cross_vf_n_y*cross_vf_n_y+cross_vf_n_z*cross_vf_n_z);
-
-vector<float> u ={
-        (cross_vf_n_x/mag_cross_vf_n),
-        (cross_vf_n_y/mag_cross_vf_n),
-        (cross_vf_n_z/mag_cross_vf_n)
-};
-//cross product between vf and u
-vector<float> v = {
-    vf[1]*u[2]-vf[2]*u[1],
-    vf[2]*u[0]-vf[0]*u[2],
-    vf[0]*u[1]-vf[1]*u[0]
-};
-
-//vector horizontal y vertical
-vector<float> ph = { 
-    wp*u[0], 
-    wp*u[1], 
-    wp*u[2] };
-
-vector<float> pv = { 
-    (-1.0f*hp)*v[0],
-    (-1.0f*hp)*v[1],
-    hp*(-1.0f*v[2]) };
-vector<float> paso_x = { ph[0]/image_width, ph[1]/image_width, ph[2]/image_width };
-vector<float> paso_y = { pv[0]/image_height, pv[1]/image_height, pv[2]/image_height };
-
-//O
-vector<float> half_psum= {
-    0.5f*(ph[0] + pv[0]),
-    0.5f*(ph[1] + pv[1]),
-    0.5f*(ph[2] + pv[2]) 
-};
-vector<float> half_pasosum = {
-    0.5f*(paso_x[0] + paso_y[0]),
-    0.5f*(paso_x[1] + paso_y[1]),
-    0.5f*(paso_x[2] + paso_y[2])    
-};
-
-vector<float> origen_ventana = {
-    camera_position[0] - vf[0] -half_psum[0]  +half_pasosum[0],
-    camera_position[1] - vf[1] -half_psum[1] + half_pasosum[1],
-    camera_position[2] - vf[2] - half_psum[2] + half_pasosum[2]
-};
-
-//trazado de rayos
-for ( int f = 0; f<image_height; f++){//loop through rows of image
-    for (int c= 0 ; f <image_width;c++){//loop through colums of the imate
-        for (int i = 0; i <samples_per_pixel; i++){//making the rays for one pixel
-            //generate random numbers
-            uniform_real_distribution<float> rand01(-0.5f, 0.5f);
-            float gamma_x = rand01(ray_rng_state);
-            float gamma_y = rand01(ray_rng_state);
-            // Q = O + Δx*(c+δx) + Δy*(f+δy)
-            vector<float> Q = {
-                origen_ventana[0] + paso_x[0]*(c + delta_x) + paso_y[0]*(f + delta_y),
-                origen_ventana[1] + paso_x[1]*(c + delta_x) + paso_y[1]*(f + delta_y),
-                origen_ventana[2] + paso_x[2]*(c + delta_x) + paso_y[2]*(f + delta_y)
-            };
-
-            // rayo: origen = P, dirección = normalize(Q - P)
-            vector<float> dir = {
-                Q[0] - camera_position[0],
-                Q[1] - camera_position[1],
-                Q[2] - camera_position[2]
-            };
-            
-            // normalizar dirección
-            float mag_dir = sqrt(dir[0]*dir[0] + dir[1]*dir[1] + dir[2]*dir[2]);
-            dir[0] /= mag_dir;
-            dir[1] /= mag_dir;
-            dir[2] /= mag_dir;
-            
-            // calcular color del rayo con profundidad máxima
-            vector<float> color = calcular_color_rayo(camera_position,dir,max_depth,lista_esferas,lista_cilindros,
-                materiales,material_rng_state,background_dark_color,background_light_color );
-
-            
-
-        }
-    }
+//inline to tell the complier to just add it on the line of the code 
+inline vector<float> normalize(const vector<float>& a) {
+    float mag = sqrtf(a[0]*a[0] + a[1]*a[1] + a[2]*a[2]);
+    if (mag > 1e-12f)
+        return { a[0]/mag, a[1]/mag, a[2]/mag };
+    else
+        return { 0.0f, 0.0f, 0.0f };
 }
+// Function to initialize ray generation parameters and return them
+void inicializar_generacion_rayos(vector<float>& origen_ventana, vector<float>& paso_x, vector<float>& paso_y) {
+    
+    // derived:  using the same names as in the document to not feel lost
+    vector<float>vf = {//vector focal -> del punto de vista hasta el destino de la vision
+        camera_position[0] - camera_target[0],
+        camera_position[1] - camera_target[1],
+        camera_position[2] - camera_target[2]
+    };
+    //distancia focal, magnitud del vector focal
+    float df = sqrt(vf[0]*vf[0] + vf[1]*vf[1] + vf[2]*vf[2]);
+    float pi = 3.1415927f;//for conversion
+    float alpha = (fov_deg*pi)/180;//campo de vision en radiants
+    float hp = 2.0f * tan(0.5f * alpha) * df;//altura ventana de proyeccion
+    float wp = hp * (aspect_ratio[0] / aspect_ratio[1]);//anchura ventana de proyeccion
+    
+    //direction vectors
+    //cross product of camera and vf
+    float cross_vf_n_x=vf[1]*camera_north[2]-vf[2]*camera_north[1];
+    float cross_vf_n_y=vf[2]*camera_north[0]-vf[0]*camera_north[2];
+    float cross_vf_n_z=vf[0]*camera_north[1]-vf[1]*camera_north[0];
 
+    //magnitude of the cross section
+    float mag_cross_vf_n = sqrt(cross_vf_n_x*cross_vf_n_x+cross_vf_n_y*cross_vf_n_y+cross_vf_n_z*cross_vf_n_z);
+
+    vector<float> u ={
+            (cross_vf_n_x/mag_cross_vf_n),
+            (cross_vf_n_y/mag_cross_vf_n),
+            (cross_vf_n_z/mag_cross_vf_n)
+    };
+    //cross product between vf and u
+    vector<float> v = {
+        vf[1]*u[2]-vf[2]*u[1],
+        vf[2]*u[0]-vf[0]*u[2],
+        vf[0]*u[1]-vf[1]*u[0]
+    };
+
+    //vector horizontal y vertical
+    vector<float> ph = { 
+        wp*u[0], 
+        wp*u[1], 
+        wp*u[2] };
+
+    vector<float> pv = { 
+        (-1.0f*hp)*v[0],
+        (-1.0f*hp)*v[1],
+        hp*(-1.0f*v[2]) };
+    
+    paso_x = { ph[0]/image_width, ph[1]/image_width, ph[2]/image_width };
+    paso_y = { pv[0]/image_height, pv[1]/image_height, pv[2]/image_height };
+
+    //O
+    vector<float> half_psum= {
+        0.5f*(ph[0] + pv[0]),
+        0.5f*(ph[1] + pv[1]),
+        0.5f*(ph[2] + pv[2]) 
+    };
+
+    vector<float> half_pasosum = {
+        0.5f*(paso_x[0] + paso_y[0]),
+        0.5f*(paso_x[1] + paso_y[1]),
+        0.5f*(paso_x[2] + paso_y[2])    
+    };
+
+    origen_ventana = {
+        camera_position[0] - vf[0] -half_psum[0]  +half_pasosum[0],
+        camera_position[1] - vf[1] -half_psum[1] + half_pasosum[1],
+        camera_position[2] - vf[2] - half_psum[2] + half_pasosum[2]
+    };
+}
 // función para calcular color de un rayo
 //returns the values that it calculates on updated> bg_dark/light and objects
 vector<float> calcular_color_rayo( vector<float> origen,vector<float> direccion,int profundidad,Spheres& esferas,
@@ -181,10 +156,13 @@ vector<float> calcular_color_rayo( vector<float> origen,vector<float> direccion,
                 punto_interseccion[1] = origen[1] + direccion[1]*lambda;
                 punto_interseccion[2] = origen[2] + direccion[2]*lambda;
                 
-                // normal = (I - C)/r
-                normal_interseccion[0] = (punto_interseccion[0] - esferas.centro_x[i])/esferas.radio[i];
-                normal_interseccion[1] = (punto_interseccion[1] - esferas.centro_y[i])/esferas.radio[i];
-                normal_interseccion[2] = (punto_interseccion[2] - esferas.centro_z[i])/esferas.radio[i];
+                // normal = (I - C)/r usando normalize
+                vector<float> temp_normal = {
+                    punto_interseccion[0] - esferas.centro_x[i],
+                    punto_interseccion[1] - esferas.centro_y[i],
+                    punto_interseccion[2] - esferas.centro_z[i]
+                };
+                normal_interseccion = normalize(temp_normal);
                 
                 // sentido
                 float dot_dir_normal = direccion[0]*normal_interseccion[0] + 
@@ -207,14 +185,17 @@ vector<float> calcular_color_rayo( vector<float> origen,vector<float> direccion,
         float r  = cilindros.radio[i];
         float ax = cilindros.eje_x[i], ay = cilindros.eje_y[i], az = cilindros.eje_z[i];
 
-        // eje unitario y altura
-        float amag = sqrt(ax*ax + ay*ay + az*az); if (amag < 1e-8f) continue;
-        float ux = ax/amag, uy = ay/amag, uz = az/amag, h = amag;
+        // eje unitario y altura usando normalize
+        vector<float> eje_vec = {ax, ay, az};
+        float amag = sqrt(ax*ax + ay*ay + az*az); 
+        if (amag < 1e-8f) continue;
+        vector<float> u_eje = normalize(eje_vec);
+        float ux = u_eje[0], uy = u_eje[1], uz = u_eje[2], h = amag;
 
         // rc = Or - C  (note: opposite sign than spheres)
         float rcx = origen[0]-Cx, rcy = origen[1]-Cy, rcz = origen[2]-Cz;
 
-        // components perpendicular to axis
+        // components perpendicular to axis assing all in one line to save space
         float ddot = direccion[0]*ux + direccion[1]*uy + direccion[2]*uz;
         float drx = direccion[0]-ddot*ux, dry = direccion[1]-ddot*uy, drz = direccion[2]-ddot*uz;
 
@@ -241,11 +222,14 @@ vector<float> calcular_color_rayo( vector<float> origen,vector<float> direccion,
                 float ICx = Ix - Cx, ICy = Iy - Cy, ICz = Iz - Cz;
                 float proj = ICx*ux + ICy*uy + ICz*uz;
                 if (fabsf(proj) <= 0.5f*h + 1e-6f) {
-                    // lateral normal
-                    float nx = ICx - proj*ux, ny = ICy - proj*uy, nz = ICz - proj*uz;
-                    float nmag = sqrt(nx*nx + ny*ny + nz*nz); if (nmag > 0.0f){ nx/=nmag; ny/=nmag; nz/=nmag; }
+                    // lateral normal usando normalize
+                    vector<float> temp_n = {ICx - proj*ux, ICy - proj*uy, ICz - proj*uz};
+                    vector<float> n_norm = normalize(temp_n);
+                    float nx = n_norm[0], ny = n_norm[1], nz = n_norm[2];
+                    
                     float d = direccion[0]*nx + direccion[1]*ny + direccion[2]*nz;
-                    sentido_afuera = (d < 0.0f); if (!sentido_afuera){ nx=-nx; ny=-ny; nz=-nz; }
+                    sentido_afuera = (d < 0.0f); 
+                    if (!sentido_afuera){ nx=-nx; ny=-ny; nz=-nz; }
 
                     dist_min = lambda; objeto_tipo = 1; objeto_idx = i;
                     punto_interseccion[0]=Ix; punto_interseccion[1]=Iy; punto_interseccion[2]=Iz;
@@ -273,14 +257,16 @@ vector<float> calcular_color_rayo( vector<float> origen,vector<float> direccion,
             if (dx*dx + dy*dy + dz*dz > r*r) continue;
 
             float d = direccion[0]*nx + direccion[1]*ny + direccion[2]*nz;
-            sentido_afuera = (d < 0.0f); if (!sentido_afuera){ nx=-nx; ny=-ny; nz=-nz; }
+            sentido_afuera = (d < 0.0f); 
+            if (!sentido_afuera){ nx=-nx; ny=-ny; nz=-nz; }
 
             dist_min = lambda; objeto_tipo = 1; objeto_idx = i;
             punto_interseccion[0]=Ix; punto_interseccion[1]=Iy; punto_interseccion[2]=Iz;
             normal_interseccion[0]=nx; normal_interseccion[1]=ny; normal_interseccion[2]=nz;
         }
     }
-      // si no hay intersección, retornar color de fondo
+    
+    // si no hay intersección, retornar color de fondo
     if(objeto_tipo == -1){
         float dir_y_norm = direccion[1];
         float m = (dir_y_norm + 1.0f) / 2.0f;
@@ -314,9 +300,46 @@ vector<float> calcular_color_rayo( vector<float> origen,vector<float> direccion,
     };
     return color_attenuado;
 }
+//trazado de rayos
+void generar_rayos_imagen() {
+    vector<float> origen_ventana, paso_x, paso_y;
+    
+    // Initialize ray generation parameters - these will be modified by reference
+    inicializar_generacion_rayos(origen_ventana, paso_x, paso_y);
+    
+    // Now origen_ventana, paso_x, and paso_y contain the calculated values
+    for ( int f = 0; f<image_height; f++){//loop through rows of image
+        for (int c= 0 ; c<image_width;c++){//loop through colums of the image
+            for (int i = 0; i <samples_per_pixel; i++){//making the rays for one pixel
+                //generate random numbers
+                uniform_real_distribution<float> rand01(-0.5f, 0.5f);
+                float delta_x = rand01(ray_rng_state);
+                float delta_y = rand01(ray_rng_state);
+                // Q = O + Δx*(c+δx) + Δy*(f+δy)
+                vector<float> Q = {
+                    origen_ventana[0] + paso_x[0]*(c + delta_x) + paso_y[0]*(f + delta_y),
+                    origen_ventana[1] + paso_x[1]*(c + delta_x) + paso_y[1]*(f + delta_y),
+                    origen_ventana[2] + paso_x[2]*(c + delta_x) + paso_y[2]*(f + delta_y)
+                };
+
+                // rayo: origen = P, dirección = normalize(Q - P)
+                vector<float> dir = {
+                    Q[0] - camera_position[0],
+                    Q[1] - camera_position[1],
+                    Q[2] - camera_position[2]
+                };
+                            
+                // calcular color del rayo con profundidad máxima
+                vector<float> color = calcular_color_rayo(camera_position,normalize(dir),max_depth,lista_esferas,lista_cilindros,
+                    materiales,material_rng_state,background_dark_color,background_light_color );
+            }
+        }
+    }
+}
+
     
 // función para calcular reflexión según tipo de material
-void calcular_reflexion(  vector<float>& direccion_original,vector<float>& normal,int material_idx,Materials& mats,
+void calcular_reflexion(vector<float>& direccion_original,vector<float>& normal,int material_idx,Materials& mats,
     mt19937_64& mat_rng,bool sentido_afuera, vector<float>& dir_reflejada,vector<float>& atenuacion){
    
     int tipo_material = mats.tipo[material_idx]; // 0=mate, 1=metal, 2=refractivo    
@@ -333,9 +356,9 @@ void calcular_reflexion(  vector<float>& direccion_original,vector<float>& norma
         dir_reflejada[2] = normal[2] + rand_z;
         
         // verificar si el vector es demasiado pequeño
-        if(fabs(dir_reflejada[0]) < 1e-8f && 
-           fabs(dir_reflejada[1]) < 1e-8f && 
-           fabs(dir_reflejada[2]) < 1e-8f){
+        if(fabsf(dir_reflejada[0]) < 1e-8f && 
+           fabsf(dir_reflejada[1]) < 1e-8f && 
+           fabsf(dir_reflejada[2]) < 1e-8f){
             dir_reflejada[0] = normal[0];
             dir_reflejada[1] = normal[1];
             dir_reflejada[2] = normal[2];
@@ -358,11 +381,8 @@ void calcular_reflexion(  vector<float>& direccion_original,vector<float>& norma
             direccion_original[2] - 2.0f*dot_do_dn*normal[2]
         };
         
-        // normalizar d1r
-        float mag_d1r = sqrt(d1r[0]*d1r[0] + d1r[1]*d1r[1] + d1r[2]*d1r[2]);
-        d1r[0] /= mag_d1r;
-        d1r[1] /= mag_d1r;
-        d1r[2] /= mag_d1r;
+        // normalizar d1r usando helper function
+        d1r = normalize(d1r);
         
         // generar vector de difusión
         float factor_difusion = mats.factor_difusion[material_idx];
@@ -382,15 +402,8 @@ void calcular_reflexion(  vector<float>& direccion_original,vector<float>& norma
         atenuacion[2] = mats.reflectancia_b[material_idx];
     
     } else if(tipo_material == 2){ // material refractivo
-        // normalizar dirección original
-        float mag_do = sqrt(direccion_original[0]*direccion_original[0] + 
-                           direccion_original[1]*direccion_original[1] + 
-                           direccion_original[2]*direccion_original[2]);
-        vector<float> do_hat = {
-            direccion_original[0]/mag_do,
-            direccion_original[1]/mag_do,
-            direccion_original[2]/mag_do
-        };
+        // normalizar dirección original usando helper function
+        vector<float> do_hat = normalize(direccion_original);
         
         // calcular ángulo de refracción
         float dot_do_dn = -(do_hat[0]*normal[0] + do_hat[1]*normal[1] + do_hat[2]*normal[2]);
@@ -410,7 +423,7 @@ void calcular_reflexion(  vector<float>& direccion_original,vector<float>& norma
         }
         else{
             // refracción
-            // u = ρ'(d̂o + (cos θ)dn)
+            // u = ρ(do + (cos θ)dn)
             vector<float> u = {
                 rho_prima * (do_hat[0] + cos_theta*normal[0]),
                 rho_prima * (do_hat[1] + cos_theta*normal[1]),
@@ -418,8 +431,9 @@ void calcular_reflexion(  vector<float>& direccion_original,vector<float>& norma
             };
             
             // v = -(√|1 - ||u||²|)dn
+            //mag may end up being zero, to check on unit testing
             float mag_u_sq = u[0]*u[0] + u[1]*u[1] + u[2]*u[2];
-            float raiz = sqrt(fabs(1.0f - mag_u_sq));
+            float raiz = sqrt(fabsf(1.0f - mag_u_sq));
             vector<float> v = {
                 -raiz * normal[0],
                 -raiz * normal[1],
@@ -437,12 +451,4 @@ void calcular_reflexion(  vector<float>& direccion_original,vector<float>& norma
         atenuacion[1] = 1.0f;
         atenuacion[2] = 1.0f;
     }
-}
-//inline to tell the complier to just add it on the line of the code 
-inline vector<float> normalize(const vector<float>& a) {
-    float mag = sqrtf(a[0]*a[0] + a[1]*a[1] + a[2]*a[2]);
-    if (mag > 1e-12f)
-        return { a[0]/mag, a[1]/mag, a[2]/mag };
-    else
-        return { 0.0f, 0.0f, 0.0f };
 }
