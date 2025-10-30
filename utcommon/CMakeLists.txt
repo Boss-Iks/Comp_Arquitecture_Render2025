@@ -3,12 +3,16 @@
 # 1. real code we want to test
 set(COMMON_SRC_FILES
   "${CMAKE_SOURCE_DIR}/common/src/vector.cpp"
-  "${CMAKE_SOURCE_DIR}/common/src/camera.cpp"   # you need this for make_camera_from_config
+  "${CMAKE_SOURCE_DIR}/common/src/camera.cpp"   
+  "${CMAKE_SOURCE_DIR}/common/src/config.cpp"   
+  "${CMAKE_SOURCE_DIR}/common/src/scene.cpp"   
 )
 
 # 2. your tests
 set(CURRENT_DIR_SRC_FILES
   "${CMAKE_CURRENT_SOURCE_DIR}/test_camera.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/test_config.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/test_scene.cpp"
 )
 
 # 3. create a UNIQUE test target name (not "utcommon")
