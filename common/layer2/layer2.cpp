@@ -1,7 +1,6 @@
 //segmentacion logica de las funciones que estan en la area logica 2
 //key reminder: layer 2 does not scale the objects to [0-255]
 //funciones: creacion de rayos, interccion de rayos, contrbuicion de color de rayo  
-#include <vector>
 #include <cmath>
 #include <random>
 #include <array>
