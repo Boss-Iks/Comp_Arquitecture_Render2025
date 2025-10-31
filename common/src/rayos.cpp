@@ -445,8 +445,7 @@ void calcular_reflexion(
             dir_reflejada[0] = u[0] + v[0];
             dir_reflejada[1] = u[1] + v[1];
             dir_reflejada[2] = u[2] + v[2];
-        }
-        
+        }        
         // atenuacion = 100% para materiales refractivos (no color absorption)
         atenuacion[0] = 1.0f;
         atenuacion[1] = 1.0f;
