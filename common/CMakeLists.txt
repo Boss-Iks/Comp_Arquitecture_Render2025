@@ -4,6 +4,10 @@ target_sources(common
     PRIVATE 
         src/vector.cpp
         src/ppm_writer.cpp
+        src/cli.cpp
+        src/config.cpp
+        src/camera.cpp
+        src/scene.cpp
         
 )
 
