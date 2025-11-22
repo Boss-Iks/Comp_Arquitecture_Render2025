@@ -1,5 +1,6 @@
 set(COMMON_SRC_FILES 
   "${CMAKE_SOURCE_DIR}/common/src/vector.cpp"
+  "${CMAKE_SOURCE_DIR}/common/src/rayos.cpp"
 )
 
 set(CURRENT_DIR_SRC_FILES 
@@ -8,6 +9,7 @@ set(CURRENT_DIR_SRC_FILES
   "${CMAKE_CURRENT_SOURCE_DIR}/test_fb_aos.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/test_fb_soa.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/test_ppm_writer.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/test_rayos.cpp"
 )
 
 add_unit_test_target(

@@ -5,13 +5,13 @@
 #include <cstdint>
 #include <vector>
 
-// Forward declarations for common types
-struct CameraConfig;
-struct SceneData;
+struct Camera;
+struct Scene;
 
-// for aos
 struct Pixel {
-  std::uint8_t r, g, b;
+  std::uint8_t r;
+  std::uint8_t g;
+  std::uint8_t b;
 };
 
 struct Ray {
@@ -20,19 +20,12 @@ struct Ray {
 };
 
 struct HitRecord {
-  bool hit = false;
-  double t = 1e10;
-  std::array<double, 3> point;
-  std::array<double, 3> normal;
-  uint32_t material_id = 0;
+  bool hit                     = false;
+  double t                     = 1e10;
+  std::array<double, 3> point  = {0.0, 0.0, 0.0};
+  std::array<double, 3> normal = {0.0, 0.0, 0.0};
+  std::uint32_t material_id    = 0;
 };
-
-void trace_rays_aos(std::array<float, 3> const & origen_ventana,
-                    std::array<float, 3> const & paso_x, std::array<float, 3> const & paso_y,
-                    std::array<double, 3> const & camera_position, SceneData const & scene,
-                    int image_width, int image_height, std::vector<Pixel> & framebuffer);
-
-// for soa
 
 struct FramebufferSOA {
   std::vector<std::uint8_t> R;
@@ -40,9 +33,8 @@ struct FramebufferSOA {
   std::vector<std::uint8_t> B;
 };
 
-void trace_rays_soa(std::array<float, 3> const & origen_ventana,
-                    std::array<float, 3> const & paso_x, std::array<float, 3> const & paso_y,
-                    std::array<double, 3> const & camera_position, SceneData const & scene,
-                    int image_width, int image_height, FramebufferSOA & framebuffer);
+void trace_rays_aos(Camera const & camara, Scene const & escena, std::vector<Pixel> & framebuffer);
+
+void trace_rays_soa(Camera const & camara, Scene const & escena, FramebufferSOA & framebuffer);
 
 #endif  // RAYOS_HPP

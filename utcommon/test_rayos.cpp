@@ -1,462 +1,299 @@
-#include "rayos.hpp"
+#include "../include/camera.hpp"
+#include "../include/rayos.hpp"
+#include "../include/scene.hpp"
 #include <array>
 #include <cmath>
 #include <gtest/gtest.h>
-#include <numbers>
-#include <random>
-#include <vector>
 
-// Constants to avoid magic numbers
-namespace TestConstants {
+namespace {
 
-  constexpr float kZero           = 0.0F;
-  constexpr float kOne            = 1.0F;
-  constexpr float kMinusOne       = -1.0F;
-  constexpr float kMinusFive      = -5.0F;
-  constexpr float kThree          = 3.0F;
-  constexpr float kFour           = 4.0F;
-  constexpr float kTwo            = 2.0F;
-  constexpr float kHalf           = 0.5F;
-  constexpr float kPointSix       = 0.6F;
-  constexpr float kPointEight     = 0.8F;
-  constexpr float kPointThree     = 0.3F;
-  constexpr float kPointNine      = 0.9F;
-  constexpr float kPointSeven     = 0.7F;
-  constexpr float kOnePointFive   = 1.5F;
-  constexpr float kPointOne       = 0.1F;
-  constexpr float kNinety         = 90.0F;
-  constexpr float kFortyFive      = 45.0F;
-  constexpr float kSixteen        = 16.0F;
-  constexpr float kNine           = 9.0F;
-  constexpr float kTolerance      = 1e-6F;
-  constexpr float kSmallTolerance = 0.01F;
-  constexpr float kMagTolerance   = 0.1F;
+  constexpr double EPSILON = 1e-9;
 
-  constexpr int kImageWidth       = 800;
-  constexpr int kImageHeight      = 450;
-  constexpr int kImageWidthLarge  = 1'600;
-  constexpr int kImageHeightLarge = 900;
-  constexpr int kSamplesPerPixel  = 10;
-  constexpr int kMaxDepth         = 5;
-  constexpr int kZeroDepth        = 0;
-  constexpr int kSingleObject     = 1;
-
-  constexpr int kRngSeed1    = 123;
-  constexpr int kRngSeed2    = 456;
-  constexpr int kRngSeedMain = 12'345;
-
-  constexpr int kMatTypeBase       = 0;
-  constexpr int kMatTypeMetal      = 1;
-  constexpr int kMatTypeRefractive = 2;
-
-}  // namespace TestConstants
-
-// Test fixture class for ray tracing tests
-class RayTracingTest : public ::testing::Test {
-protected:
-  void SetUp() override {
-    InitializeCamera();
-    InitializeRenderConfig();
-    InitializeSpheres();
-    InitializeCylinders();
-    InitializeMaterials();
-    InitializeRng();
+  // helper para comparar arrays de doubles
+  bool arrays_iguales(std::array<double, 3> const & a, std::array<double, 3> const & b,
+                      double epsilon = EPSILON) {
+    return std::abs(a[0] - b[0]) < epsilon and
+           std::abs(a[1] - b[1]) < epsilon and
+           std::abs(a[2] - b[2]) < epsilon;
   }
 
-  void TearDown() override {
-    CleanupSpheres();
-    CleanupCylinders();
-    CleanupMaterials();
+  // tests para estructura Pixel
+  TEST(PixelTest, InicializacionCorrecta) {
+    Pixel p{255, 128, 0};
+    EXPECT_EQ(p.r, 255);
+    EXPECT_EQ(p.g, 128);
+    EXPECT_EQ(p.b, 0);
   }
 
-  void InitializeCamera() {
-    using namespace TestConstants;
-    camera.position     = {kZero, kZero, kZero};
-    camera.target       = {kZero, kZero, kMinusOne};
-    camera.north        = {kZero, kOne, kZero};
-    camera.fov_deg      = kNinety;
-    camera.aspect_ratio = {kSixteen, kNine};
+  // tests para estructura Ray
+  TEST(RayTest, InicializacionDefecto) {
+    Ray rayo{};
+    EXPECT_TRUE(arrays_iguales(rayo.origin, {0.0, 0.0, 0.0}));
+    EXPECT_TRUE(arrays_iguales(rayo.direction, {0.0, 0.0, 0.0}));
   }
 
-  void InitializeRenderConfig() {
-    using namespace TestConstants;
-    render_config.image_width       = kImageWidth;
-    render_config.image_height      = kImageHeight;
-    render_config.samples_per_pixel = kSamplesPerPixel;
-    render_config.max_depth         = kMaxDepth;
-    render_config.background_dark   = {kHalf, kPointSeven, kOne};
-    render_config.background_light  = {kOne, kOne, kOne};
+  TEST(RayTest, AsignacionValores) {
+    Ray rayo{};
+    rayo.origin    = {1.0, 2.0, 3.0};
+    rayo.direction = {0.0, 1.0, 0.0};
+    EXPECT_TRUE(arrays_iguales(rayo.origin, {1.0, 2.0, 3.0}));
+    EXPECT_TRUE(arrays_iguales(rayo.direction, {0.0, 1.0, 0.0}));
   }
 
-  void InitializeSpheres() {
-    using namespace TestConstants;
-    sphere_data_x        = std::vector<float>{kZero};
-    sphere_data_y        = std::vector<float>{kZero};
-    sphere_data_z        = std::vector<float>{kMinusFive};
-    sphere_data_radio    = std::vector<float>{kOne};
-    sphere_data_material = std::vector<int>{kMatTypeBase};
-
-    spheres.count        = kSingleObject;
-    spheres.centro_x     = sphere_data_x.data();
-    spheres.centro_y     = sphere_data_y.data();
-    spheres.centro_z     = sphere_data_z.data();
-    spheres.radio        = sphere_data_radio.data();
-    spheres.material_idx = sphere_data_material.data();
+  // tests para estructura HitRecord
+  TEST(HitRecordTest, InicializacionDefecto) {
+    HitRecord hit{};
+    EXPECT_FALSE(hit.hit);
+    EXPECT_DOUBLE_EQ(hit.t, 1e10);
+    EXPECT_EQ(hit.material_id, 0);
   }
 
-  void InitializeCylinders() {
-    using namespace TestConstants;
-    cylinder_data_x        = std::vector<float>{kThree};
-    cylinder_data_y        = std::vector<float>{kZero};
-    cylinder_data_z        = std::vector<float>{kMinusFive};
-    cylinder_data_radio    = std::vector<float>{kHalf};
-    cylinder_data_eje_x    = std::vector<float>{kZero};
-    cylinder_data_eje_y    = std::vector<float>{kTwo};
-    cylinder_data_eje_z    = std::vector<float>{kZero};
-    cylinder_data_material = std::vector<int>{kMatTypeMetal};
+  TEST(HitRecordTest, ActualizacionValores) {
+    HitRecord hit{};
+    hit.hit         = true;
+    hit.t           = 5.5;
+    hit.point       = {1.0, 2.0, 3.0};
+    hit.normal      = {0.0, 1.0, 0.0};
+    hit.material_id = 42;
 
-    cylinders.count        = kSingleObject;
-    cylinders.centro_x     = cylinder_data_x.data();
-    cylinders.centro_y     = cylinder_data_y.data();
-    cylinders.centro_z     = cylinder_data_z.data();
-    cylinders.radio        = cylinder_data_radio.data();
-    cylinders.eje_x        = cylinder_data_eje_x.data();
-    cylinders.eje_y        = cylinder_data_eje_y.data();
-    cylinders.eje_z        = cylinder_data_eje_z.data();
-    cylinders.material_idx = cylinder_data_material.data();
+    EXPECT_TRUE(hit.hit);
+    EXPECT_DOUBLE_EQ(hit.t, 5.5);
+    EXPECT_TRUE(arrays_iguales(hit.point, {1.0, 2.0, 3.0}));
+    EXPECT_TRUE(arrays_iguales(hit.normal, {0.0, 1.0, 0.0}));
+    EXPECT_EQ(hit.material_id, 42);
   }
 
-  void InitializeMaterials() {
-    using namespace TestConstants;
-    mat_data_tipo              = std::vector<int>{kMatTypeBase, kMatTypeMetal, kMatTypeRefractive};
-    mat_data_reflectancia_r    = std::vector<float>{kPointEight, kPointNine, kOne};
-    mat_data_reflectancia_g    = std::vector<float>{kPointThree, kPointNine, kOne};
-    mat_data_reflectancia_b    = std::vector<float>{kPointThree, kPointNine, kOne};
-    mat_data_factor_difusion   = std::vector<float>{kZero, kPointOne, kZero};
-    mat_data_indice_refraccion = std::vector<float>{kOne, kOne, kOnePointFive};
+  // tests para FramebufferSOA
+  TEST(FramebufferSOATest, Redimensionamiento) {
+    FramebufferSOA fb{};
+    fb.R.resize(100);
+    fb.G.resize(100);
+    fb.B.resize(100);
 
-    materials.tipo              = mat_data_tipo.data();
-    materials.reflectancia_r    = mat_data_reflectancia_r.data();
-    materials.reflectancia_g    = mat_data_reflectancia_g.data();
-    materials.reflectancia_b    = mat_data_reflectancia_b.data();
-    materials.factor_difusion   = mat_data_factor_difusion.data();
-    materials.indice_refraccion = mat_data_indice_refraccion.data();
+    EXPECT_EQ(fb.R.size(), 100);
+    EXPECT_EQ(fb.G.size(), 100);
+    EXPECT_EQ(fb.B.size(), 100);
   }
 
-  void InitializeRng() { rng.seed(TestConstants::kRngSeedMain); }
+  TEST(FramebufferSOATest, AsignacionValores) {
+    FramebufferSOA fb{};
+    fb.R.resize(3);
+    fb.G.resize(3);
+    fb.B.resize(3);
 
-  void CleanupSpheres() {
-    // Vectors handle their own cleanup
+    fb.R[0] = 255;
+    fb.G[1] = 128;
+    fb.B[2] = 64;
+
+    EXPECT_EQ(fb.R[0], 255);
+    EXPECT_EQ(fb.G[1], 128);
+    EXPECT_EQ(fb.B[2], 64);
   }
 
-  void CleanupCylinders() {
-    // Vectors handle their own cleanup
+  // tests de integracion para escena simple
+  class EscenaSimpleTest : public ::testing::Test {
+  protected:
+    void SetUp() override {
+      // configurar camara simple
+      camara.P            = {0.0, 0.0, 0.0};
+      camara.D            = {0.0, 0.0, -1.0};
+      camara.N            = {0.0, 1.0, 0.0};
+      camara.image_width  = 100;
+      camara.image_height = 100;
+      camara.O            = {-1.0, 1.0, -1.0};
+      camara.dx           = {0.02, 0.0, 0.0};
+      camara.dy           = {0.0, -0.02, 0.0};
+
+      // crear material simple
+      Material mat{};
+      mat.type      = MaterialType::Matte;
+      mat.matte.rgb = {1.0, 0.0, 0.0};
+      escena.materials.push_back(mat);
+
+      // agregar esfera en frente de la camara
+      Sphere esfera{};
+      esfera.center      = {0.0, 0.0, -5.0};
+      esfera.radius      = 1.0;
+      esfera.material_id = 0;
+      escena.spheres.push_back(esfera);
+    }
+
+    Camera camara{};
+    Scene escena{};
+  };
+
+  TEST_F(EscenaSimpleTest, TraceRaysAOSNoLanza) {
+    std::vector<Pixel> framebuffer;
+    EXPECT_NO_THROW(trace_rays_aos(camara, escena, framebuffer));
+    EXPECT_EQ(framebuffer.size(), 10'000);
   }
 
-  void CleanupMaterials() {
-    // Vectors handle their own cleanup
+  TEST_F(EscenaSimpleTest, TraceRaysSOANoLanza) {
+    FramebufferSOA framebuffer;
+    EXPECT_NO_THROW(trace_rays_soa(camara, escena, framebuffer));
+    EXPECT_EQ(framebuffer.R.size(), 10'000);
+    EXPECT_EQ(framebuffer.G.size(), 10'000);
+    EXPECT_EQ(framebuffer.B.size(), 10'000);
   }
 
-  CameraConfig camera;
-  RenderConfig render_config;
-  Spheres spheres;
-  Cylinders cylinders;
-  Materials materials;
-  std::mt19937_64 rng;
+  TEST_F(EscenaSimpleTest, AOSySOAProducenResultadosIguales) {
+    std::vector<Pixel> fb_aos;
+    FramebufferSOA fb_soa;
 
-  // Use vectors instead of raw pointers for RAII
-  std::vector<float> sphere_data_x;
-  std::vector<float> sphere_data_y;
-  std::vector<float> sphere_data_z;
-  std::vector<float> sphere_data_radio;
-  std::vector<int> sphere_data_material;
+    trace_rays_aos(camara, escena, fb_aos);
+    trace_rays_soa(camara, escena, fb_soa);
 
-  std::vector<float> cylinder_data_x;
-  std::vector<float> cylinder_data_y;
-  std::vector<float> cylinder_data_z;
-  std::vector<float> cylinder_data_radio;
-  std::vector<float> cylinder_data_eje_x;
-  std::vector<float> cylinder_data_eje_y;
-  std::vector<float> cylinder_data_eje_z;
-  std::vector<int> cylinder_data_material;
+    ASSERT_EQ(fb_aos.size(), fb_soa.R.size());
 
-  std::vector<int> mat_data_tipo;
-  std::vector<float> mat_data_reflectancia_r;
-  std::vector<float> mat_data_reflectancia_g;
-  std::vector<float> mat_data_reflectancia_b;
-  std::vector<float> mat_data_factor_difusion;
-  std::vector<float> mat_data_indice_refraccion;
-};
+    for (std::size_t i = 0; i < fb_aos.size(); ++i) {
+      EXPECT_EQ(fb_aos[i].r, fb_soa.R[i]) << "Diferencia en indice " << i;
+      EXPECT_EQ(fb_aos[i].g, fb_soa.G[i]) << "Diferencia en indice " << i;
+      EXPECT_EQ(fb_aos[i].b, fb_soa.B[i]) << "Diferencia en indice " << i;
+    }
+  }
 
-// ============================================================
-// Tests for normalize() function
-// ============================================================
+  // tests para escena con cilindro
+  class EscenaCilindroTest : public ::testing::Test {
+  protected:
+    void SetUp() override {
+      camara.P            = {0.0, 0.0, 0.0};
+      camara.D            = {0.0, 0.0, -1.0};
+      camara.N            = {0.0, 1.0, 0.0};
+      camara.image_width  = 50;
+      camara.image_height = 50;
+      camara.O            = {-1.0, 1.0, -1.0};
+      camara.dx           = {0.04, 0.0, 0.0};
+      camara.dy           = {0.0, -0.04, 0.0};
 
-TEST(NormalizeTest, NormalizesUnitVector) {
-  using namespace TestConstants;
-  std::array<float, 3> vector = {kOne, kZero, kZero};
-  std::array<float, 3> result = normalize(vector);
-  EXPECT_FLOAT_EQ(result[0], kOne);
-  EXPECT_FLOAT_EQ(result[1], kZero);
-  EXPECT_FLOAT_EQ(result[2], kZero);
-}
+      Material mat{};
+      mat.type            = MaterialType::Metal;
+      mat.metal.rgb       = {0.8, 0.8, 0.8};
+      mat.metal.diffusion = 0.1;
+      escena.materials.push_back(mat);
 
-TEST(NormalizeTest, NormalizesNonUnitVector) {
-  using namespace TestConstants;
-  std::array<float, 3> vector = {kThree, kFour, kZero};
-  std::array<float, 3> result = normalize(vector);
-  EXPECT_FLOAT_EQ(result[0], kPointSix);
-  EXPECT_FLOAT_EQ(result[1], kPointEight);
-  EXPECT_FLOAT_EQ(result[2], kZero);
-}
+      Cylinder cilindro{};
+      cilindro.base_center = {0.0, -1.0, -5.0};
+      cilindro.axis        = {0.0, 2.0, 0.0};
+      cilindro.radius      = 0.5;
+      cilindro.material_id = 0;
+      escena.cylinders.push_back(cilindro);
+    }
 
-TEST(NormalizeTest, HandlesZeroVector) {
-  using namespace TestConstants;
-  std::array<float, 3> vector = {kZero, kZero, kZero};
-  std::array<float, 3> result = normalize(vector);
-  EXPECT_FLOAT_EQ(result[0], kZero);
-  EXPECT_FLOAT_EQ(result[1], kZero);
-  EXPECT_FLOAT_EQ(result[2], kZero);
-}
+    Camera camara{};
+    Scene escena{};
+  };
 
-TEST(NormalizeTest, NormalizesNegativeVector) {
-  using namespace TestConstants;
-  std::array<float, 3> vector = {kMinusOne, kMinusOne, kMinusOne};
-  std::array<float, 3> result = normalize(vector);
-  float expected              = kMinusOne / std::numbers::sqrt3_v<float>;
-  EXPECT_NEAR(result[0], expected, kTolerance);
-  EXPECT_NEAR(result[1], expected, kTolerance);
-  EXPECT_NEAR(result[2], expected, kTolerance);
-}
+  TEST_F(EscenaCilindroTest, RenderizadoCilindro) {
+    std::vector<Pixel> framebuffer;
+    EXPECT_NO_THROW(trace_rays_aos(camara, escena, framebuffer));
+    EXPECT_EQ(framebuffer.size(), 2'500);
+  }
 
-// ============================================================
-// Tests for generacion_rayos() function
-// ============================================================
+  // tests para escena vacia
+  TEST(EscenaVaciaTest, SoloColorFondo) {
+    Camera cam{};
+    cam.P            = {0.0, 0.0, 0.0};
+    cam.image_width  = 10;
+    cam.image_height = 10;
+    cam.O            = {-1.0, 1.0, -1.0};
+    cam.dx           = {0.2, 0.0, 0.0};
+    cam.dy           = {0.0, -0.2, 0.0};
 
-TEST_F(RayTracingTest, GeneracionRayosOutputsValidVectors) {
-  using namespace TestConstants;
-  std::array<float, 3> origen_ventana{};
-  std::array<float, 3> paso_x{};
-  std::array<float, 3> paso_y{};
+    Scene escena_vacia{};
+    std::vector<Pixel> framebuffer;
 
-  generacion_rayos(camera, render_config.image_width, render_config.image_height, origen_ventana,
-                   paso_x, paso_y);
+    trace_rays_aos(cam, escena_vacia, framebuffer);
 
-  EXPECT_NE(origen_ventana[0], kZero);
-  EXPECT_NE(paso_x[0], kZero);
-  EXPECT_NE(paso_y[0], kZero);
-}
+    EXPECT_EQ(framebuffer.size(), 100);
 
-TEST_F(RayTracingTest, GeneracionRayosStepSizeProportionalToImageSize) {
-  using namespace TestConstants;
-  std::array<float, 3> origen_ventana1{};
-  std::array<float, 3> paso_x1{};
-  std::array<float, 3> paso_y1{};
-  std::array<float, 3> origen_ventana2{};
-  std::array<float, 3> paso_x2{};
-  std::array<float, 3> paso_y2{};
+    // verificar que todos los pixeles tienen color de fondo
+    for (auto const & pixel : framebuffer) {
+      EXPECT_GT(pixel.r, 0);
+      EXPECT_GT(pixel.g, 0);
+      EXPECT_GT(pixel.b, 0);
+    }
+  }
 
-  generacion_rayos(camera, kImageWidth, kImageHeight, origen_ventana1, paso_x1, paso_y1);
-  generacion_rayos(camera, kImageWidthLarge, kImageHeightLarge, origen_ventana2, paso_x2, paso_y2);
+  // tests para multiples materiales
+  TEST(MultipleMaterialesTest, TresMateriales) {
+    Camera cam{};
+    cam.P            = {0.0, 0.0, 0.0};
+    cam.image_width  = 20;
+    cam.image_height = 20;
+    cam.O            = {-1.0, 1.0, -1.0};
+    cam.dx           = {0.1, 0.0, 0.0};
+    cam.dy           = {0.0, -0.1, 0.0};
 
-  float mag_paso_x1 =
-      std::sqrt(paso_x1[0] * paso_x1[0] + paso_x1[1] * paso_x1[1] + paso_x1[2] * paso_x1[2]);
-  float mag_paso_x2 =
-      std::sqrt(paso_x2[0] * paso_x2[0] + paso_x2[1] * paso_x2[1] + paso_x2[2] * paso_x2[2]);
+    Scene escena{};
 
-  EXPECT_NEAR(mag_paso_x1 / mag_paso_x2, kTwo, kSmallTolerance);
-}
+    // material mate
+    Material mat1{};
+    mat1.type      = MaterialType::Matte;
+    mat1.matte.rgb = {1.0, 0.0, 0.0};
+    escena.materials.push_back(mat1);
 
-TEST_F(RayTracingTest, GeneracionRayosFOVAffectsStepSize) {
-  using namespace TestConstants;
-  std::array<float, 3> origen_ventana1{};
-  std::array<float, 3> paso_x1{};
-  std::array<float, 3> paso_y1{};
-  std::array<float, 3> origen_ventana2{};
-  std::array<float, 3> paso_x2{};
-  std::array<float, 3> paso_y2{};
+    // material metalico
+    Material mat2{};
+    mat2.type            = MaterialType::Metal;
+    mat2.metal.rgb       = {0.0, 1.0, 0.0};
+    mat2.metal.diffusion = 0.2;
+    escena.materials.push_back(mat2);
 
-  CameraConfig camera2 = camera;
-  camera2.fov_deg      = kFortyFive;
+    // material refractivo
+    Material mat3{};
+    mat3.type       = MaterialType::Refractive;
+    mat3.refr.index = 1.5;
+    escena.materials.push_back(mat3);
 
-  generacion_rayos(camera, kImageWidth, kImageHeight, origen_ventana1, paso_x1, paso_y1);
-  generacion_rayos(camera2, kImageWidth, kImageHeight, origen_ventana2, paso_x2, paso_y2);
+    // tres esferas con diferentes materiales
+    Sphere s1{};
+    s1.center      = {-2.0, 0.0, -5.0};
+    s1.radius      = 0.5;
+    s1.material_id = 0;
+    escena.spheres.push_back(s1);
 
-  float mag_paso_x1 =
-      std::sqrt(paso_x1[0] * paso_x1[0] + paso_x1[1] * paso_x1[1] + paso_x1[2] * paso_x1[2]);
-  float mag_paso_x2 =
-      std::sqrt(paso_x2[0] * paso_x2[0] + paso_x2[1] * paso_x2[1] + paso_x2[2] * paso_x2[2]);
+    Sphere s2{};
+    s2.center      = {0.0, 0.0, -5.0};
+    s2.radius      = 0.5;
+    s2.material_id = 1;
+    escena.spheres.push_back(s2);
 
-  EXPECT_LT(mag_paso_x2, mag_paso_x1);
-}
+    Sphere s3{};
+    s3.center      = {2.0, 0.0, -5.0};
+    s3.radius      = 0.5;
+    s3.material_id = 2;
+    escena.spheres.push_back(s3);
 
-// ============================================================
-// Tests for calcular_color_rayo() - Background
-// ============================================================
+    std::vector<Pixel> framebuffer;
+    EXPECT_NO_THROW(trace_rays_aos(cam, escena, framebuffer));
+    EXPECT_EQ(framebuffer.size(), 400);
+  }
 
-TEST_F(RayTracingTest, ColorRayoReturnsBackgroundWhenNoIntersection) {
-  using namespace TestConstants;
-  std::array<float, 3> origen    = {kZero, kZero, kZero};
-  std::array<float, 3> direccion = {kZero, kZero, kOne};
+  // tests de rendimiento basico
+  TEST(RendimientoTest, ImagenGrande) {
+    Camera cam{};
+    cam.P            = {0.0, 0.0, 0.0};
+    cam.image_width  = 200;
+    cam.image_height = 200;
+    cam.O            = {-1.0, 1.0, -1.0};
+    cam.dx           = {0.01, 0.0, 0.0};
+    cam.dy           = {0.0, -0.01, 0.0};
 
-  Spheres empty_spheres     = {0, nullptr, nullptr, nullptr, nullptr, nullptr};
-  Cylinders empty_cylinders = {0,       nullptr, nullptr, nullptr, nullptr,
-                               nullptr, nullptr, nullptr, nullptr};
+    Scene escena{};
+    Material mat{};
+    mat.type      = MaterialType::Matte;
+    mat.matte.rgb = {0.5, 0.5, 0.5};
+    escena.materials.push_back(mat);
 
-  std::array<float, 3> color =
-      calcular_color_rayo(origen, direccion, kMaxDepth, empty_spheres, empty_cylinders, materials,
-                          rng, render_config.background_dark, render_config.background_light);
+    Sphere esfera{};
+    esfera.center      = {0.0, 0.0, -5.0};
+    esfera.radius      = 1.0;
+    esfera.material_id = 0;
+    escena.spheres.push_back(esfera);
 
-  EXPECT_GT(color[0] + color[1] + color[2], kZero);
-}
+    std::vector<Pixel> framebuffer;
+    EXPECT_NO_THROW(trace_rays_aos(cam, escena, framebuffer));
+    EXPECT_EQ(framebuffer.size(), 40'000);
+  }
 
-TEST_F(RayTracingTest, ColorRayoReturnsBlackAtZeroDepth) {
-  using namespace TestConstants;
-  std::array<float, 3> origen    = {kZero, kZero, kZero};
-  std::array<float, 3> direccion = {kZero, kZero, kMinusOne};
-
-  std::array<float, 3> color =
-      calcular_color_rayo(origen, direccion, kZeroDepth, spheres, cylinders, materials, rng,
-                          render_config.background_dark, render_config.background_light);
-
-  EXPECT_FLOAT_EQ(color[0], kZero);
-  EXPECT_FLOAT_EQ(color[1], kZero);
-  EXPECT_FLOAT_EQ(color[2], kZero);
-}
-
-// ============================================================
-// Tests for calcular_color_rayo() - Sphere Intersection
-// ============================================================
-
-TEST_F(RayTracingTest, ColorRayoDetectsSphereIntersection) {
-  using namespace TestConstants;
-  std::array<float, 3> origen    = {kZero, kZero, kZero};
-  std::array<float, 3> direccion = {kZero, kZero, kMinusOne};
-
-  Cylinders empty_cylinders = {0,       nullptr, nullptr, nullptr, nullptr,
-                               nullptr, nullptr, nullptr, nullptr};
-
-  std::array<float, 3> color =
-      calcular_color_rayo(origen, direccion, kMaxDepth, spheres, empty_cylinders, materials, rng,
-                          render_config.background_dark, render_config.background_light);
-
-  EXPECT_GT(color[0] + color[1] + color[2], kZero);
-}
-
-TEST_F(RayTracingTest, ColorRayoIgnoresSphereBehindOrigin) {
-  using namespace TestConstants;
-  std::array<float, 3> origen    = {kZero, kZero, kZero};
-  std::array<float, 3> direccion = {kZero, kZero, kOne};
-
-  Cylinders empty_cylinders = {0,       nullptr, nullptr, nullptr, nullptr,
-                               nullptr, nullptr, nullptr, nullptr};
-
-  std::array<float, 3> color =
-      calcular_color_rayo(origen, direccion, kMaxDepth, spheres, empty_cylinders, materials, rng,
-                          render_config.background_dark, render_config.background_light);
-
-  EXPECT_GT(color[0], kHalf);
-}
-
-// ============================================================
-// Tests for calcular_reflexion() - Diffuse Material
-// ============================================================
-
-TEST_F(RayTracingTest, ReflexionDiffuseMaterialScattersRandomly) {
-  using namespace TestConstants;
-  std::array<float, 3> direccion = {kZero, kZero, kMinusOne};
-  std::array<float, 3> normal    = {kZero, kZero, kOne};
-  std::array<float, 3> dir_reflejada1{};
-  std::array<float, 3> dir_reflejada2{};
-  std::array<float, 3> atenuacion1{};
-  std::array<float, 3> atenuacion2{};
-
-  std::mt19937_64 rng1(kRngSeed1);
-  std::mt19937_64 rng2(kRngSeed2);
-
-  calcular_reflexion(direccion, normal, kMatTypeBase, materials, rng1, true, dir_reflejada1,
-                     atenuacion1);
-  calcular_reflexion(direccion, normal, kMatTypeBase, materials, rng2, true, dir_reflejada2,
-                     atenuacion2);
-
-  bool is_different = (dir_reflejada1[0] != dir_reflejada2[0]) or
-                      (dir_reflejada1[1] != dir_reflejada2[1]) or
-                      (dir_reflejada1[2] != dir_reflejada2[2]);
-  EXPECT_TRUE(is_different);
-}
-
-TEST_F(RayTracingTest, ReflexionDiffuseAppliesCorrectAttenuation) {
-  using namespace TestConstants;
-  std::array<float, 3> direccion = {kZero, kZero, kMinusOne};
-  std::array<float, 3> normal    = {kZero, kZero, kOne};
-  std::array<float, 3> dir_reflejada{};
-  std::array<float, 3> atenuacion{};
-
-  calcular_reflexion(direccion, normal, kMatTypeBase, materials, rng, true, dir_reflejada,
-                     atenuacion);
-
-  EXPECT_FLOAT_EQ(atenuacion[0], mat_data_reflectancia_r[kMatTypeBase]);
-  EXPECT_FLOAT_EQ(atenuacion[1], mat_data_reflectancia_g[kMatTypeBase]);
-  EXPECT_FLOAT_EQ(atenuacion[2], mat_data_reflectancia_b[kMatTypeBase]);
-}
-
-// ============================================================
-// Tests for calcular_reflexion() - Metal Material
-// ============================================================
-
-TEST_F(RayTracingTest, ReflexionMetalReflectsCorrectly) {
-  using namespace TestConstants;
-  std::array<float, 3> direccion = normalize(std::array<float, 3>{kZero, kMinusOne, kMinusOne});
-  std::array<float, 3> normal    = {kZero, kZero, kOne};
-  std::array<float, 3> dir_reflejada{};
-  std::array<float, 3> atenuacion{};
-
-  calcular_reflexion(direccion, normal, kMatTypeMetal, materials, rng, true, dir_reflejada,
-                     atenuacion);
-
-  EXPECT_GT(dir_reflejada[2], kZero);
-}
-
-// ============================================================
-// Tests for calcular_reflexion() - Refractive Material
-// ============================================================
-
-TEST_F(RayTracingTest, ReflexionRefractiveMaterialNoAttenuation) {
-  using namespace TestConstants;
-  std::array<float, 3> direccion = {kZero, kZero, kMinusOne};
-  std::array<float, 3> normal    = {kZero, kZero, kOne};
-  std::array<float, 3> dir_reflejada{};
-  std::array<float, 3> atenuacion{};
-
-  calcular_reflexion(direccion, normal, kMatTypeRefractive, materials, rng, true, dir_reflejada,
-                     atenuacion);
-
-  EXPECT_FLOAT_EQ(atenuacion[0], kOne);
-  EXPECT_FLOAT_EQ(atenuacion[1], kOne);
-  EXPECT_FLOAT_EQ(atenuacion[2], kOne);
-}
-
-TEST_F(RayTracingTest, ReflexionRefractiveHandlesTotalInternalReflection) {
-  using namespace TestConstants;
-  std::array<float, 3> direccion = normalize(std::array<float, 3>{kOne, kZero, kOne});
-  std::array<float, 3> normal    = {kZero, kZero, kOne};
-  std::array<float, 3> dir_reflejada{};
-  std::array<float, 3> atenuacion{};
-
-  calcular_reflexion(direccion, normal, kMatTypeRefractive, materials, rng, false, dir_reflejada,
-                     atenuacion);
-
-  float magnitude = std::sqrt(dir_reflejada[0] * dir_reflejada[0] +
-                              dir_reflejada[1] * dir_reflejada[1] +
-                              dir_reflejada[2] * dir_reflejada[2]);
-  EXPECT_GT(magnitude, kMagTolerance);
-}
-
-// ============================================================
-// Main function to run all tests
-// ============================================================
-
-auto main(int argc, char ** argv) -> int {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
+}  // namespace

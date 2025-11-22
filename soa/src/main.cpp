@@ -1,24 +1,17 @@
 // include all the libraries
-#include "../common/include/camera.hpp"
-#include "../common/include/cli.hpp"
-#include "../common/include/color.hpp"
-#include "../common/include/config.hpp"
-#include "../common/include/ppm_writer.hpp"
-#include "../common/include/rayos.hpp"
-#include "../common/include/scene.hpp"
+#include "camera.hpp"
+#include "cli.hpp"
+#include "color.hpp"
+#include "config.hpp"
+#include "ppm_writer.hpp"
+#include "rayos.hpp"
+#include "scene.hpp"
 #include <cstdint>
 #include <iostream>
-#include <random>
 #include <vector>
 // #include "vector.hpp"
 
 using namespace std;
-
-struct FramebufferSOA {
-  std::vector<std::uint8_t> R;
-  std::vector<std::uint8_t> G;
-  std::vector<std::uint8_t> B;
-};
 
 int main(int argc, char * argv[]) {
   // std::println("Starting SOA rendering");
