@@ -27,12 +27,6 @@ struct HitRecord {
   std::uint32_t material_id    = 0;
 };
 
-struct FramebufferSOA {
-  std::vector<std::uint8_t> R;
-  std::vector<std::uint8_t> G;
-  std::vector<std::uint8_t> B;
-};
-
 void trace_rays_aos(Camera const & camara, Scene const & escena, std::vector<Pixel> & framebuffer);
 
 void trace_rays_soa(Camera const & camara, Scene const & escena, FramebufferSOA & framebuffer);

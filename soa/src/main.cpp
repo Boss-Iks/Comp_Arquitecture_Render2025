@@ -1,12 +1,11 @@
 // include all the libraries
 #include "camera.hpp"
 #include "cli.hpp"
-#include "color.hpp"
 #include "config.hpp"
+#include "framebuffer_soa.hpp"
 #include "ppm_writer.hpp"
 #include "rayos.hpp"
 #include "scene.hpp"
-#include <cstdint>
 #include <iostream>
 #include <vector>
 // #include "vector.hpp"
@@ -45,5 +44,10 @@ int main(int argc, char * argv[]) {
   std::cout << "Scene:  " << cli.scene_path << "\n";
   std::cout << "Output: " << cli.output_path << "\n";
   std::cout << "CLI parsing OK \n";
+
+  // implementation of the SOA rendering (filling memory with ray color)
+  FramebufferSOA fb;
+  initFramebufferSOA(fb, cam.image_width, cam.image_height);
+  trace_rays_soa(cam, scene, fb);
   return 0;
 }
