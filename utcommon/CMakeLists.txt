@@ -5,7 +5,9 @@ set(COMMON_SRC_FILES
 
 set(CURRENT_DIR_SRC_FILES 
   "${CMAKE_CURRENT_SOURCE_DIR}/test_vector.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/test_color.cpp"  
+  "${CMAKE_CURRENT_SOURCE_DIR}/test_color.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/test_fb_aos.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/test_fb_soa.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/test_ppm_writer.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/test_rayos.cpp"
 )

@@ -10,6 +10,13 @@ struct FramebufferSOA {
   std::vector<std::uint8_t> B;
 };
 
+// estructura para valores RGB de un pixel
+struct PixelRGB {
+  std::uint8_t r;
+  std::uint8_t g;
+  std::uint8_t b;
+};
+
 // inicializa framebuffer SOA con dimensiones dadas (relleno con ceros)
 inline void initFramebufferSOA(FramebufferSOA & fb, int ancho, int alto) {
   std::size_t const n = static_cast<std::size_t>(ancho) * static_cast<std::size_t>(alto);
@@ -24,9 +31,8 @@ inline void initFramebufferSOA(FramebufferSOA & fb, int ancho, int alto) {
 }
 
 // almacena valores RGB de pixel en SOA usando indice precalculado
-inline void storePixelSOA(FramebufferSOA & fb, std::size_t idx, std::uint8_t r, std::uint8_t g,
-                          std::uint8_t b) {
-  fb.R[idx] = r;
-  fb.G[idx] = g;
-  fb.B[idx] = b;
+inline void storePixelSOA(FramebufferSOA & fb, std::size_t idx, PixelRGB rgb) {
+  fb.R[idx] = rgb.r;
+  fb.G[idx] = rgb.g;
+  fb.B[idx] = rgb.b;
 }

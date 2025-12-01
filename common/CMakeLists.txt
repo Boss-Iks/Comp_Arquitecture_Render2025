@@ -8,7 +8,7 @@ target_sources(common
         src/config.cpp
         src/camera.cpp
         src/scene.cpp
-        
+        src/rayos.cpp
 )
 
 target_include_directories(common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
