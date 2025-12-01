@@ -1,6 +1,7 @@
 #ifndef RAYOS_HPP
 #define RAYOS_HPP
 
+#include "../../soa/src/framebuffer_soa.hpp"
 #include <array>
 #include <cstdint>
 #include <vector>

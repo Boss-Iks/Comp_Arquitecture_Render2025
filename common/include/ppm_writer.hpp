@@ -1,15 +1,12 @@
 #pragma once
 #include <string>
 #include <vector>
-#include <cstdint>
 
-struct Pixel;          // AOS
-struct FramebufferSOA; // SOA
+struct Pixel;           // AOS
+struct FramebufferSOA;  // SOA
 
-bool writePPM_AOS(const std::string& path,
-                  const std::vector<Pixel>& fb,
-                  int width, int height);
+// escribe framebuffer AOS a archivo PPM en formato P3
+bool writePPM_AOS(std::string const & ruta, std::vector<Pixel> const & fb, int ancho, int alto);
 
-bool writePPM_SOA(const std::string& path,
-                  const FramebufferSOA& fb,
-                  int width, int height);
+// escribe framebuffer SOA a archivo PPM en formato P3
+bool writePPM_SOA(std::string const & ruta, FramebufferSOA const & fb, int ancho, int alto);

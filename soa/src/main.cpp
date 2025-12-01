@@ -8,15 +8,10 @@
 #include "scene.hpp"
 #include <iostream>
 #include <vector>
-// #include "vector.hpp"
 
 using namespace std;
 
 int main(int argc, char * argv[]) {
-  // std::println("Starting SOA rendering");
-  // render::vector vec{1.0, 2.0, 3.0};
-  // std::println("Vector magnitude: {}", vec.magnitude());
-
   std::vector<std::string_view> args;
   args.reserve(static_cast<size_t>(argc));
   for (int i = 0; i < argc; ++i) {
@@ -46,8 +41,13 @@ int main(int argc, char * argv[]) {
   std::cout << "CLI parsing OK \n";
 
   // implementation of the SOA rendering (filling memory with ray color)
+  std::size_t const n =
+      static_cast<std::size_t>(cam.image_width) * static_cast<std::size_t>(cam.image_height);
   FramebufferSOA fb;
-  initFramebufferSOA(fb, cam.image_width, cam.image_height);
+  fb.R.resize(n);
+  fb.G.resize(n);
+  fb.B.resize(n);
   trace_rays_soa(cam, scene, fb);
+  writePPM_SOA(cli.output_path, fb, cam.image_width, cam.image_height);
   return 0;
 }
