@@ -1,4 +1,3 @@
-// include all the libraries
 #include "camera.hpp"
 #include "cli.hpp"
 #include "config.hpp"

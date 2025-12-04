@@ -1,8 +1,6 @@
 #pragma once
-#include <array>
-#include <string_view>
-
 #include "config.hpp"  // uses your parsed config
+#include <array>
 
 struct Camera {
   // Inputs (copied from config)
@@ -21,6 +19,15 @@ struct Camera {
   std::array<double, 3> O{};   // top-left pixel center of projection plane
   std::array<double, 3> dx{};  // step to next pixel in x
   std::array<double, 3> dy{};  // step to next pixel in y
+
+  std::array<double, 3> bg_dark{};
+  std::array<double, 3> bg_light{};
+
+  double gamma{};
+  int samples_per_pixel{};
+  int max_depth{};
+  std::uint64_t material_rng_seed{};
+  std::uint64_t ray_rng_seed{};
 };
 
 // Throws process-terminating errors (stderr + exit) on invalid inputs.
